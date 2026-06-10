@@ -13,16 +13,19 @@ const IS_VERCEL = process.env.VERCEL === '1';
 // Initialize database
 async function initDB() {
   if (dbReady) return;
-  const SQL = await initSqlJs();
-  
-  // Load existing database or create new one
-  const dbPath = path.join(__dirname, 'database.sqlite');
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
-  } else {
-    db = new SQL.Database();
-  }
+  try {
+    const SQL = await initSqlJs({
+      locateFile: file => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file)
+    });
+    
+    // Load existing database or create new one
+    const dbPath = path.join(__dirname, 'database.sqlite');
+    if (fs.existsSync(dbPath)) {
+      const fileBuffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(fileBuffer);
+    } else {
+      db = new SQL.Database();
+    }
   
   // Create tables
   db.run(`
@@ -71,6 +74,10 @@ async function initDB() {
   
   if (!IS_VERCEL) saveDB();
   dbReady = true;
+  } catch (error) {
+    console.error('Database init error:', error);
+    throw error;
+  }
 }
 
 function saveDB() {
@@ -95,8 +102,12 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 // Ensure DB is ready before API calls
 app.use('/api', async (req, res, next) => {
-  if (!dbReady) await initDB();
-  next();
+  try {
+    if (!dbReady) await initDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Database initialization failed: ' + error.message });
+  }
 });
 
 // Create uploads directory
