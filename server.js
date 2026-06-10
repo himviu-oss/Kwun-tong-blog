@@ -110,6 +110,17 @@ app.use('/api', async (req, res, next) => {
   }
 });
 
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  const dbPath = path.join(__dirname, 'database.sqlite');
+  res.json({
+    dbExists: fs.existsSync(dbPath),
+    dbSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
+    dirname: __dirname,
+    isVercel: IS_VERCEL
+  });
+});
+
 // Create uploads directory
 if (!IS_VERCEL && !fs.existsSync('uploads')) {
   fs.mkdirSync('uploads', { recursive: true });
