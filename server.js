@@ -6,11 +6,13 @@ const fs = require('fs');
 
 const app = express();
 let db;
+let dbReady = false;
 
 const IS_VERCEL = process.env.VERCEL === '1';
 
 // Initialize database
 async function initDB() {
+  if (dbReady) return;
   const SQL = await initSqlJs();
   
   // Load existing database or create new one
@@ -67,7 +69,8 @@ async function initDB() {
     )
   `);
   
-  saveDB();
+  if (!IS_VERCEL) saveDB();
+  dbReady = true;
 }
 
 function saveDB() {
@@ -86,9 +89,15 @@ function saveDB() {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
-app.use('/admin', express.static('admin'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
+
+// Ensure DB is ready before API calls
+app.use('/api', async (req, res, next) => {
+  if (!dbReady) await initDB();
+  next();
+});
 
 // Create uploads directory
 if (!IS_VERCEL && !fs.existsSync('uploads')) {
@@ -340,15 +349,17 @@ app.delete('/api/media/:id', (req, res) => {
   }
 });
 
-// Start server
-initDB().then(() => {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`\n✅ CMS running at http://localhost:${PORT}`);
-    console.log(`📝 Admin panel: http://localhost:${PORT}/admin/index.html`);
-    console.log(`🌐 View site: http://localhost:${PORT}\n`);
+// Start server (local only)
+if (!IS_VERCEL) {
+  initDB().then(() => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`\n✅ CMS running at http://localhost:${PORT}`);
+      console.log(`📝 Admin panel: http://localhost:${PORT}/admin/index.html`);
+      console.log(`🌐 View site: http://localhost:${PORT}\n`);
+    });
   });
-});
+}
 
 // Export for Vercel
 module.exports = app;
