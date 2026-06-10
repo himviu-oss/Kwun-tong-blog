@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Posts - The Stray Dog CMS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .btn-primary { background: white; color: #667eea; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .toolbar { margin-bottom: 20px; }
+        .post-list { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .post-item { padding: 20px; border-bottom: 1px solid #eee; display: grid; grid-template-columns: 100px 1fr auto; gap: 20px; align-items: center; }
+        .post-item:last-child { border-bottom: none; }
+        .post-thumb { width: 100px; height: 70px; background: #ddd; border-radius: 5px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .post-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .post-info h3 { color: #333; margin-bottom: 5px; }
+        .post-info p { color: #888; font-size: 14px; }
+        .post-actions { display: flex; gap: 10px; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #888; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px 15px; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; }
+        .form-group textarea { min-height: 200px; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .editor-toolbar { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            border: 2px solid #e1e1e1; 
+            border-bottom: none; 
+            border-radius: 8px 8px 0 0; 
+            display: flex; 
+            gap: 5px; 
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .editor-toolbar button { 
+            padding: 5px 10px; 
+            border: 1px solid #ddd; 
+            background: white; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            min-width: 30px;
+        }
+        .editor-toolbar button:hover { background: #e9e9e9; }
+        .editor-toolbar select { 
+            padding: 5px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            background: white;
+        }
+        .editor-toolbar .separator { color: #ccc; margin: 0 5px; }
+        .editor-content { 
+            min-height: 200px; 
+            padding: 15px; 
+            border: 2px solid #e1e1e1; 
+            border-radius: 0 0 8px 8px; 
+            outline: none;
+            background: white;
+        }
+        .editor-content:focus { border-color: #667eea; }
+        .editor-content:empty:before { content: attr(placeholder); color: #aaa; }
+        .image-selector { border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; }
+        .image-selector:hover { border-color: #667eea; }
+        .selected-image { max-width: 200px; max-height: 150px; border-radius: 5px; }
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; }
+        .media-item { cursor: pointer; border: 3px solid transparent; border-radius: 5px; overflow: hidden; }
+        .media-item:hover, .media-item.selected { border-color: #667eea; }
+        .media-item img { width: 100%; height: 80px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Manage Posts</h1>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="index.html" class="btn btn-primary">← Dashboard</a>
+            <a href="gallery.html" class="btn btn-primary">Gallery</a>
+            <a href="media.html" class="btn btn-primary">Media</a>
+            <a href="/blog.html" class="btn btn-primary" target="_blank">View Blog</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="toolbar">
+            <button class="btn btn-success" onclick="openModal()">+ Create New Post</button>
+        </div>
+        <div class="post-list" id="postList"></div>
+    </div>
+
+    <div class="modal" id="postModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Post</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <input type="hidden" id="postId">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="postTitle">
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="postDate">
+            </div>
+            <div class="form-group">
+                <label>Image/Video</label>
+                <div id="imageSelector" class="image-selector" onclick="openMediaSelector()">
+                    <span id="imageSelectorText">Click to select media</span>
+                    <img id="selectedImagePreview" class="selected-image" style="display:none">
+                </div>
+                <input type="hidden" id="selectedImage">
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <div class="editor-toolbar">
+                    <button type="button" onclick="formatText('bold')" title="Bold"><b>B</b></button>
+                    <button type="button" onclick="formatText('italic')" title="Italic"><i>I</i></button>
+                    <button type="button" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                    <span class="separator">|</span>
+                    <select onchange="formatText('fontSize', this.value)" title="Font Size">
+                        <option value="">Size</option>
+                        <option value="1">Small</option>
+                        <option value="3">Normal</option>
+                        <option value="5">Large</option>
+                        <option value="7">Huge</option>
+                    </select>
+                    <span class="separator">|</span>
+                    <input type="color" onchange="formatText('foreColor', this.value)" title="Text Color" style="width: 30px; padding: 0; border: none; cursor: pointer;">
+                    <input type="color" onchange="formatText('hiliteColor', this.value)" value="#ffff00" title="Highlight Color" style="width: 30px; padding: 0; border: none; cursor: pointer;">
+                    <span class="separator">|</span>
+                    <button type="button" onclick="formatText('justifyLeft')" title="Align Left">⬅</button>
+                    <button type="button" onclick="formatText('justifyCenter')" title="Center">⬌</button>
+                    <button type="button" onclick="formatText('justifyRight')" title="Align Right">➡</button>
+                    <span class="separator">|</span>
+                    <button type="button" onclick="formatText('insertUnorderedList')" title="Bullet List">•</button>
+                    <button type="button" onclick="formatText('insertOrderedList')" title="Number List">1.</button>
+                    <span class="separator">|</span>
+                    <button type="button" onclick="formatText('removeFormat')" title="Clear Formatting">✕</button>
+                    <span class="separator">|</span>
+                    <button type="button" onclick="insertImage()" title="Insert Image" style="background: #667eea; color: white;">📷 Insert Image</button>
+                </div>
+                <div id="postContent" class="editor-content" contenteditable="true" placeholder="Type your content here..."></div>
+            </div>
+            <button class="btn btn-success" onclick="savePost()">Save Post</button>
+        </div>
+    </div>
+
+    <div class="modal" id="mediaModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Media</h2>
+                <button class="close-btn" onclick="closeMediaSelector()">&times;</button>
+            </div>
+            <div class="media-grid" id="mediaGrid"></div>
+        </div>
+    </div>
+
+    <!-- Inline Image Selector Modal -->
+    <div class="modal" id="inlineMediaModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Insert Image in Content</h2>
+                <button class="close-btn" onclick="closeInlineMediaModal()">&times;</button>
+            </div>
+            <div class="media-grid" id="inlineMediaGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        let posts = [];
+
+        function loadPosts() {
+            fetch('/api/posts').then(res => res.json()).then(data => { posts = data; renderPosts(); });
+        }
+        loadPosts();
+
+        function renderPosts() {
+            const list = document.getElementById('postList');
+            list.innerHTML = posts.length ? posts.map(post => `
+                <div class="post-item">
+                    <div class="post-thumb">${post.image ? `<img src="/uploads/${post.image}" alt="">` : '📄'}</div>
+                    <div class="post-info">
+                        <h3>${post.title}</h3>
+                        <p>${post.post_date ? new Date(post.post_date).toLocaleDateString() : 'No date'}</p>
+                    </div>
+                    <div class="post-actions">
+                        <button class="btn btn-primary" onclick="editPost(${post.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deletePost(${post.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('') : '<p style="padding: 20px; text-align: center; color: #888;">No posts yet</p>';
+        }
+
+        function openModal(postId = null) {
+            document.getElementById('postModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = postId ? 'Edit Post' : 'Create New Post';
+            document.getElementById('postId').value = postId || '';
+            if (postId) {
+                const post = posts.find(p => p.id === postId);
+                document.getElementById('postTitle').value = post.title;
+                document.getElementById('postDate').value = post.post_date || '';
+                document.getElementById('postContent').innerHTML = post.content || '';
+                document.getElementById('selectedImage').value = post.image || '';
+                if (post.image) {
+                    document.getElementById('selectedImagePreview').src = `/uploads/${post.image}`;
+                    document.getElementById('selectedImagePreview').style.display = 'block';
+                    document.getElementById('imageSelectorText').style.display = 'none';
+                }
+            } else {
+                document.getElementById('postTitle').value = '';
+                document.getElementById('postDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('postContent').innerHTML = '';
+                document.getElementById('selectedImage').value = '';
+                document.getElementById('selectedImagePreview').style.display = 'none';
+                document.getElementById('imageSelectorText').style.display = 'inline';
+            }
+        }
+
+        function closeModal() { document.getElementById('postModal').classList.remove('active'); }
+        function editPost(id) { openModal(id); }
+
+        function deletePost(id) {
+            if (confirm('Delete this post?')) {
+                fetch(`/api/posts/${id}`, { method: 'DELETE' }).then(() => loadPosts());
+            }
+        }
+
+        function formatText(command, value = null) {
+            document.execCommand(command, false, value);
+            document.getElementById('postContent').focus();
+        }
+
+        function insertImage() {
+            // Open a media selector for inline images
+            document.getElementById('inlineMediaModal').classList.add('active');
+            fetch('/api/media').then(res => res.json()).then(media => {
+                document.getElementById('inlineMediaGrid').innerHTML = media.map(m => `
+                    <div class="media-item" onclick="insertInlineImage('${m.filename}')">
+                        ${m.mimetype.startsWith('video/') ? '<div style="height:80px;background:#ddd;display:flex;align-items:center;justify-content:center;">🎬</div>' : `<img src="/uploads/${m.filename}" alt="">`}
+                    </div>
+                `).join('') || '<p style="padding:20px;color:#888;">No images. Upload in Media Library first.</p>';
+            });
+        }
+
+        function insertInlineImage(filename) {
+            const img = `<img src="/uploads/${filename}" style="max-width:100%; border-radius:8px; margin:10px 0;">`;
+            document.getElementById('postContent').focus();
+            document.execCommand('insertHTML', false, img);
+            document.getElementById('inlineMediaModal').classList.remove('active');
+        }
+
+        function closeInlineMediaModal() {
+            document.getElementById('inlineMediaModal').classList.remove('active');
+        }
+
+        function savePost() {
+            const id = document.getElementById('postId').value;
+            const title = document.getElementById('postTitle').value;
+            const post_date = document.getElementById('postDate').value;
+            const content = document.getElementById('postContent').innerHTML;
+            const image = document.getElementById('selectedImage').value;
+
+            if (!title) { alert('Please enter a title'); return; }
+
+            const url = id ? `/api/posts/${id}` : '/api/posts';
+            const method = id ? 'PUT' : 'POST';
+
+            console.log('Saving post:', { title, content, image, post_date });
+            
+            fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, content, image, post_date }) })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Response:', data);
+                    if (data.success) { 
+                        closeModal(); 
+                        loadPosts(); 
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Failed to save: ' + err.message);
+                });
+        }
+
+        function openMediaSelector() {
+            document.getElementById('mediaModal').classList.add('active');
+            fetch('/api/media').then(res => res.json()).then(media => {
+                document.getElementById('mediaGrid').innerHTML = media.map(m => `
+                    <div class="media-item" onclick="selectMedia('${m.filename}')">
+                        ${m.mimetype.startsWith('video/') ? '<div style="height:80px;background:#ddd;display:flex;align-items:center;justify-content:center;">🎬</div>' : `<img src="/uploads/${m.filename}" alt="">`}
+                    </div>
+                `).join('') || '<p style="padding:20px;color:#888;">No media. Upload in Media Library first.</p>';
+            });
+        }
+
+        function closeMediaSelector() { document.getElementById('mediaModal').classList.remove('active'); }
+
+        function selectMedia(filename) {
+            document.getElementById('selectedImage').value = filename;
+            document.getElementById('selectedImagePreview').src = `/uploads/${filename}`;
+            document.getElementById('selectedImagePreview').style.display = 'block';
+            document.getElementById('imageSelectorText').style.display = 'none';
+            closeMediaSelector();
+        }
+    </script>
+</body>
+</html>

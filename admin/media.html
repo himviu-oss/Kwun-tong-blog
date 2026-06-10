@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Library - CMS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .btn-primary { background: white; color: #667eea; }
+        .btn-danger { background: #dc3545; color: white; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .upload-area { background: white; border: 3px dashed #ddd; border-radius: 10px; padding: 40px; text-align: center; margin-bottom: 30px; cursor: pointer; }
+        .upload-area:hover { border-color: #667eea; }
+        .upload-icon { font-size: 48px; margin-bottom: 10px; }
+        #fileInput { display: none; }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: 2px solid #ddd; background: white; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .filter-btn:hover { border-color: #667eea; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .filter-count { font-size: 11px; opacity: 0.8; }
+        
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .media-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .media-preview { width: 100%; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .media-preview img, .media-preview video { width: 100%; height: 100%; object-fit: cover; }
+        .media-info { padding: 15px; }
+        .media-info h4 { color: #333; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+        .media-info p { color: #888; font-size: 12px; margin-bottom: 8px; }
+        .media-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+        .tag { padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .tag-blog { background: #e3f2fd; color: #1565c0; }
+        .tag-gallery { background: #e8f5e9; color: #2e7d32; }
+        .tag-makingof { background: #fce4ec; color: #c62828; }
+        .tag-unused { background: #f5f5f5; color: #999; }
+        .media-actions { display: flex; gap: 10px; }
+        .media-actions .btn { flex: 1; padding: 8px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Media Library</h1>
+        <div>
+            <a href="index.html" class="btn btn-primary">← Dashboard</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Drop files here or click to upload</h3>
+            <p>Supports: JPG, PNG, GIF, MP4, WebM, MOV (max 100MB)</p>
+            <input type="file" id="fileInput" accept="image/*,video/*" multiple>
+        </div>
+        
+        <div class="filter-bar" id="filterBar"></div>
+        
+        <div class="media-grid" id="mediaGrid"></div>
+    </div>
+    <script>
+        let allMedia = [];
+        let currentFilter = 'all';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.onclick = () => fileInput.click();
+        uploadArea.ondragover = (e) => { e.preventDefault(); uploadArea.style.borderColor = '#667eea'; };
+        uploadArea.ondragleave = () => uploadArea.style.borderColor = '#ddd';
+        uploadArea.ondrop = (e) => { e.preventDefault(); uploadFiles(e.dataTransfer.files); };
+        fileInput.onchange = () => uploadFiles(fileInput.files);
+        
+        function uploadFiles(files) {
+            Array.from(files).forEach(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/upload', { method: 'POST', body: formData }).then(() => loadMedia());
+            });
+        }
+        
+        function loadMedia() {
+            fetch('/api/media').then(r => r.json()).then(media => {
+                allMedia = media;
+                renderFilters();
+                renderMedia();
+            });
+        }
+        loadMedia();
+        
+        function renderFilters() {
+            const counts = { all: allMedia.length, blog: 0, gallery: 0, makingof: 0, unused: 0 };
+            allMedia.forEach(m => {
+                if (m.usedIn.includes('Blog')) counts.blog++;
+                if (m.usedIn.includes('Gallery')) counts.gallery++;
+                if (m.usedIn.includes('Making Of')) counts.makingof++;
+                if (m.usedIn.length === 0) counts.unused++;
+            });
+            
+            document.getElementById('filterBar').innerHTML = `
+                <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">All <span class="filter-count">(${counts.all})</span></button>
+                <button class="filter-btn ${currentFilter === 'blog' ? 'active' : ''}" onclick="setFilter('blog')">Blog <span class="filter-count">(${counts.blog})</span></button>
+                <button class="filter-btn ${currentFilter === 'gallery' ? 'active' : ''}" onclick="setFilter('gallery')">Gallery <span class="filter-count">(${counts.gallery})</span></button>
+                <button class="filter-btn ${currentFilter === 'makingof' ? 'active' : ''}" onclick="setFilter('makingof')">Making Of <span class="filter-count">(${counts.makingof})</span></button>
+                <button class="filter-btn ${currentFilter === 'unused' ? 'active' : ''}" onclick="setFilter('unused')">Unused <span class="filter-count">(${counts.unused})</span></button>
+            `;
+        }
+        
+        function setFilter(filter) {
+            currentFilter = filter;
+            renderFilters();
+            renderMedia();
+        }
+        
+        function renderMedia() {
+            let filtered = allMedia;
+            if (currentFilter === 'blog') filtered = allMedia.filter(m => m.usedIn.includes('Blog'));
+            else if (currentFilter === 'gallery') filtered = allMedia.filter(m => m.usedIn.includes('Gallery'));
+            else if (currentFilter === 'makingof') filtered = allMedia.filter(m => m.usedIn.includes('Making Of'));
+            else if (currentFilter === 'unused') filtered = allMedia.filter(m => m.usedIn.length === 0);
+            
+            document.getElementById('mediaGrid').innerHTML = filtered.length ? filtered.map(m => `
+                <div class="media-card">
+                    <div class="media-preview">
+                        ${m.mimetype.startsWith('video/') ? `<video src="/uploads/${m.filename}"></video>` : `<img src="/uploads/${m.filename}" alt="">`}
+                    </div>
+                    <div class="media-info">
+                        <h4 title="${m.original_name}">${m.original_name}</h4>
+                        <p>${(m.size/1024).toFixed(1)} KB</p>
+                        <div class="media-tags">
+                            ${m.usedIn.length > 0 ? m.usedIn.map(tag => {
+                                let cls = 'tag-unused';
+                                if (tag === 'Blog') cls = 'tag-blog';
+                                if (tag === 'Gallery') cls = 'tag-gallery';
+                                if (tag === 'Making Of') cls = 'tag-makingof';
+                                return `<span class="tag ${cls}">${tag}</span>`;
+                            }).join('') : '<span class="tag tag-unused">Unused</span>'}
+                        </div>
+                        <div class="media-actions">
+                            <a href="/uploads/${m.filename}" class="btn btn-primary" download>Download</a>
+                            <button class="btn btn-danger" onclick="deleteMedia(${m.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<p style="grid-column:1/-1;text-align:center;color:#888;padding:40px;">No media files in this category</p>';
+        }
+        
+        function deleteMedia(id) {
+            if (confirm('Delete this file?')) {
+                fetch(`/api/media/${id}`, { method: 'DELETE' }).then(() => loadMedia());
+            }
+        }
+    </script>
+</body>
+</html>

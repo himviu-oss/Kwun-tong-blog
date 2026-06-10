@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "title": "Welcome to My Blog",
+    "date": "2024-01-15",
+    "image": "sample.jpg",
+    "content": "<p>This is your first blog post. You can edit this file to add your own content.</p><p>Add images to the <strong>uploads</strong> folder and reference them in the image field.</p>"
+  }
+]

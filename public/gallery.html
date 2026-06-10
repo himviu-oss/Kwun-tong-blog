@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - The Stray Dog</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .gallery-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .gallery-item {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .gallery-item.full-width {
+            width: 600px;
+        }
+        
+        .gallery-item.half-width {
+            width: 380px;
+        }
+        
+        .gallery-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gallery-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease, filter 0.4s ease;
+        }
+
+        /* Dark overlay on hover */
+        .gallery-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.4s ease;
+            pointer-events: none;
+        }
+
+        .gallery-image:hover::after {
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        .gallery-image:hover img {
+            transform: scale(1.05);
+            filter: brightness(0.85);
+        }
+
+        /* Click hint that appears on hover */
+        .gallery-image .click-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            z-index: 2;
+            color: white;
+        }
+
+        .gallery-image:hover .click-hint {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .click-hint .magnify-icon {
+            width: 48px;
+            height: 48px;
+            border: 2.5px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .click-hint span {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+        }
+        
+        .gallery-image .placeholder {
+            color: #aaa;
+            font-size: 18px;
+        }
+        
+        .gallery-description {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .gallery-description h3 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .gallery-description p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .no-images {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        
+        .no-images a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        /* Lightbox styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .lightbox.active {
+            display: flex;
+        }
+        
+        .lightbox-image {
+            max-width: 90%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+        
+        .lightbox-caption {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            max-width: 80%;
+        }
+        
+        .lightbox-caption h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .lightbox-caption p {
+            font-size: 16px;
+            color: #ccc;
+        }
+        
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .lightbox-close:hover {
+            color: #667eea;
+        }
+        
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 50px;
+            cursor: pointer;
+            padding: 20px;
+            transition: color 0.3s;
+            user-select: none;
+        }
+        
+        .lightbox-nav:hover {
+            color: #667eea;
+        }
+        
+        .lightbox-prev {
+            left: 20px;
+        }
+        
+        .lightbox-next {
+            right: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .gallery-item.full-width {
+                width: 100%;
+            }
+            .gallery-item.half-width {
+                width: 100%;
+            }
+            .gallery-row {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul class="nav-links" style="justify-content: center;">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="makingof.html">Making Of</a></li>
+                <li><a href="gallery.html" class="active">Gallery</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h2>Gallery</h2>
+        </section>
+
+        <section class="gallery-container" id="galleryContainer">
+            <!-- Gallery items will be loaded here -->
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; Kwok Tsz Him, 2026</p>
+        <p style="margin-top: 8px; font-size: 0.8rem;"><a href="/admin/index.html" style="color: #666;">Admin CMS</a></p>
+    </footer>
+
+    <!-- Lightbox for full image view -->
+    <div class="lightbox" id="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <span class="lightbox-nav lightbox-prev" onclick="lightboxPrev()">&#10094;</span>
+        <img class="lightbox-image" id="lightboxImage" src="" alt="">
+        <div class="lightbox-caption">
+            <h3 id="lightboxTitle"></h3>
+            <p id="lightboxDescription"></p>
+        </div>
+        <span class="lightbox-nav lightbox-next" onclick="lightboxNext()">&#10095;</span>
+    </div>
+
+    <script>
+        let images = [];
+
+        // Fetch gallery items from CMS
+        fetch('/api/gallery')
+            .then(res => {
+                if (!res.ok) throw new Error('No gallery data');
+                return res.json();
+            })
+            .then(data => {
+                images = data;
+                renderGallery();
+            })
+            .catch(error => {
+                // If no CMS data, show placeholder
+                document.getElementById('galleryContainer').innerHTML = '<p class="no-images">No images in the gallery yet. <a href="/admin/gallery.html">Add images in CMS</a></p>';
+            });
+
+        function renderGallery() {
+            const container = document.getElementById('galleryContainer');
+            
+            if (images.length === 0) {
+                container.innerHTML = '<p class="no-images">No images in the gallery yet. <a href="/admin/gallery.html">Add images in CMS</a></p>';
+                return;
+            }
+
+            let html = '';
+
+            // First image: solo centered
+            html += `
+                <div class="gallery-row">
+                    <div class="gallery-item full-width">
+                        <div class="gallery-image" onclick="openLightbox(0)">
+                            ${images[0].image ? `<img src="/uploads/${images[0].image}" alt="${images[0].title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                        </div>
+                        <div class="gallery-description">
+                            <h3>${images[0].title}</h3>
+                            <p>${images[0].description || ''}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Middle images: pairs side by side (2-3, 4-5, 6-7, 8-9, etc.)
+            let index = 1;
+            const lastIndex = images.length - 1;
+            
+            while (index < lastIndex) {
+                const img1 = images[index];
+                const img2 = images[index + 1];
+                
+                // If next image is the last one, stop here (last gets solo treatment)
+                if (index + 1 === lastIndex) {
+                    // Show this one solo if it would be unpaired
+                    html += `
+                        <div class="gallery-row">
+                            <div class="gallery-item half-width">
+                                <div class="gallery-image" onclick="openLightbox(${index})">
+                                    ${img1.image ? `<img src="/uploads/${img1.image}" alt="${img1.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                                </div>
+                                <div class="gallery-description">
+                                    <h3>${img1.title}</h3>
+                                    <p>${img1.description || ''}</p>
+                                </div>
+                            </div>
+                            <div class="gallery-item half-width">
+                                <div class="gallery-image" onclick="openLightbox(${index + 1})">
+                                    ${img2.image ? `<img src="/uploads/${img2.image}" alt="${img2.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                                </div>
+                                <div class="gallery-description">
+                                    <h3>${img2.title}</h3>
+                                    <p>${img2.description || ''}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    index += 2;
+                    break;
+                }
+                
+                // Normal pair
+                html += `
+                    <div class="gallery-row">
+                        <div class="gallery-item half-width">
+                            <div class="gallery-image" onclick="openLightbox(${index})">
+                                ${img1.image ? `<img src="/uploads/${img1.image}" alt="${img1.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                            </div>
+                            <div class="gallery-description">
+                                <h3>${img1.title}</h3>
+                                <p>${img1.description || ''}</p>
+                            </div>
+                        </div>
+                        <div class="gallery-item half-width">
+                            <div class="gallery-image" onclick="openLightbox(${index + 1})">
+                                ${img2.image ? `<img src="/uploads/${img2.image}" alt="${img2.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                            </div>
+                            <div class="gallery-description">
+                                <h3>${img2.title}</h3>
+                                <p>${img2.description || ''}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                index += 2;
+            }
+
+            // Last image: solo centered (if it wasn't already paired)
+            if (index === lastIndex && images.length > 1) {
+                html += `
+                    <div class="gallery-row">
+                        <div class="gallery-item full-width">
+                            <div class="gallery-image" onclick="openLightbox(${lastIndex})">
+                                ${images[lastIndex].image ? `<img src="/uploads/${images[lastIndex].image}" alt="${images[lastIndex].title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+                            </div>
+                            <div class="gallery-description">
+                                <h3>${images[lastIndex].title}</h3>
+                                <p>${images[lastIndex].description || ''}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Lightbox functions
+        let currentLightboxIndex = 0;
+
+        function openLightbox(index) {
+            if (!images[index].image) return;
+            currentLightboxIndex = index;
+            updateLightbox();
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function updateLightbox() {
+            const img = images[currentLightboxIndex];
+            document.getElementById('lightboxImage').src = `/uploads/${img.image}`;
+            document.getElementById('lightboxTitle').textContent = img.title;
+            document.getElementById('lightboxDescription').textContent = img.description || '';
+            
+            // Hide prev button on first image
+            document.querySelector('.lightbox-prev').style.display = currentLightboxIndex === 0 ? 'none' : 'block';
+            
+            // Hide next button on last image
+            document.querySelector('.lightbox-next').style.display = currentLightboxIndex === images.length - 1 ? 'none' : 'block';
+        }
+
+        function lightboxNext() {
+            if (currentLightboxIndex < images.length - 1) {
+                currentLightboxIndex++;
+                updateLightbox();
+            }
+        }
+
+        function lightboxPrev() {
+            if (currentLightboxIndex > 0) {
+                currentLightboxIndex--;
+                updateLightbox();
+            }
+        }
+
+        // Close lightbox with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') lightboxNext();
+            if (e.key === 'ArrowLeft') lightboxPrev();
+        });
+
+        // Close lightbox when clicking outside the image
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if (e.target.id === 'lightbox') closeLightbox();
+        });
+    </script>
+</body>
+</html>
