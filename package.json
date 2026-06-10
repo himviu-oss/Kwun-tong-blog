@@ -1,7 +1,7 @@
 {
   "name": "stray-dog-cms",
   "version": "1.0.0",
-  "description": "CMS for The Stray Dog blog",
+  "description": "CMS for Kwun Tong blog",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

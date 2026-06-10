@@ -7,6 +7,8 @@ const fs = require('fs');
 const app = express();
 let db;
 
+const IS_VERCEL = process.env.VERCEL === '1';
+
 // Initialize database
 async function initDB() {
   const SQL = await initSqlJs();
@@ -69,6 +71,7 @@ async function initDB() {
 }
 
 function saveDB() {
+  if (IS_VERCEL) return; // Read-only on Vercel
   const data = db.export();
   const buffer = Buffer.from(data);
   fs.writeFileSync(path.join(__dirname, 'database.sqlite'), buffer);
@@ -88,7 +91,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/admin', express.static('admin'));
 
 // Create uploads directory
-if (!fs.existsSync('uploads')) {
+if (!IS_VERCEL && !fs.existsSync('uploads')) {
   fs.mkdirSync('uploads', { recursive: true });
 }
 
@@ -346,3 +349,6 @@ initDB().then(() => {
     console.log(`🌐 View site: http://localhost:${PORT}\n`);
   });
 });
+
+// Export for Vercel
+module.exports = app;
