@@ -110,7 +110,16 @@
             overflow-wrap: break-word;
         }
         .post-body font[color] {
-            color: attr(color) !important;
+            color: inherit !important;
+        }
+        .post-body span[style*="color"],
+        .post-body p[style*="color"],
+        .post-body div[style*="color"],
+        .post-body font[color] {
+            color: #ccc !important;
+        }
+        .post-body * {
+            color: inherit;
         }
         .post-body .youtube-embed {
             margin: 20px 0;

@@ -72,7 +72,11 @@ async function initDB() {
     )
   `);
   
-  if (!IS_VERCEL) saveDB();
+  if (!IS_VERCEL) {
+    // Only save if tables were newly created (first run)
+    const tableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='posts'");
+    if (!tableCheck[0]) saveDB();
+  }
   dbReady = true;
   } catch (error) {
     console.error('Database init error:', error);
