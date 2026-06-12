@@ -39,6 +39,10 @@
             width: 380px;
         }
         
+        .gallery-item.third-width {
+            width: 250px;
+        }
+        
         .gallery-image {
             width: 100%;
             height: 400px;
@@ -244,6 +248,9 @@
             .gallery-item.half-width {
                 width: 100%;
             }
+            .gallery-item.third-width {
+                width: 100%;
+            }
             .gallery-row {
                 flex-direction: column;
                 align-items: center;
@@ -321,99 +328,70 @@
 
             let html = '';
 
-            // First image: solo centered
-            html += `
-                <div class="gallery-row">
-                    <div class="gallery-item full-width">
-                        <div class="gallery-image" onclick="openLightbox(0)">
-                            ${images[0].image ? `<img src="/uploads/${images[0].image}" alt="${images[0].title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
+            function makeItem(idx, widthClass) {
+                const img = images[idx];
+                if (!img) return '';
+                return `
+                    <div class="gallery-item ${widthClass}">
+                        <div class="gallery-image" onclick="openLightbox(${idx})">
+                            ${img.image ? `<img src="/uploads/${img.image}" alt="${img.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
                         </div>
                         <div class="gallery-description">
-                            <h3>${images[0].title}</h3>
-                            <p>${images[0].description || ''}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Middle images: pairs side by side (2-3, 4-5, 6-7, 8-9, etc.)
-            let index = 1;
-            const lastIndex = images.length - 1;
-            
-            while (index < lastIndex) {
-                const img1 = images[index];
-                const img2 = images[index + 1];
-                
-                // If next image is the last one, stop here (last gets solo treatment)
-                if (index + 1 === lastIndex) {
-                    // Show this one solo if it would be unpaired
-                    html += `
-                        <div class="gallery-row">
-                            <div class="gallery-item half-width">
-                                <div class="gallery-image" onclick="openLightbox(${index})">
-                                    ${img1.image ? `<img src="/uploads/${img1.image}" alt="${img1.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
-                                </div>
-                                <div class="gallery-description">
-                                    <h3>${img1.title}</h3>
-                                    <p>${img1.description || ''}</p>
-                                </div>
-                            </div>
-                            <div class="gallery-item half-width">
-                                <div class="gallery-image" onclick="openLightbox(${index + 1})">
-                                    ${img2.image ? `<img src="/uploads/${img2.image}" alt="${img2.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
-                                </div>
-                                <div class="gallery-description">
-                                    <h3>${img2.title}</h3>
-                                    <p>${img2.description || ''}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    index += 2;
-                    break;
-                }
-                
-                // Normal pair
-                html += `
-                    <div class="gallery-row">
-                        <div class="gallery-item half-width">
-                            <div class="gallery-image" onclick="openLightbox(${index})">
-                                ${img1.image ? `<img src="/uploads/${img1.image}" alt="${img1.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
-                            </div>
-                            <div class="gallery-description">
-                                <h3>${img1.title}</h3>
-                                <p>${img1.description || ''}</p>
-                            </div>
-                        </div>
-                        <div class="gallery-item half-width">
-                            <div class="gallery-image" onclick="openLightbox(${index + 1})">
-                                ${img2.image ? `<img src="/uploads/${img2.image}" alt="${img2.title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
-                            </div>
-                            <div class="gallery-description">
-                                <h3>${img2.title}</h3>
-                                <p>${img2.description || ''}</p>
-                            </div>
+                            <h3>${img.title}</h3>
+                            <p>${img.description || ''}</p>
                         </div>
                     </div>
                 `;
-                index += 2;
             }
 
-            // Last image: solo centered (if it wasn't already paired)
-            if (index === lastIndex && images.length > 1) {
-                html += `
-                    <div class="gallery-row">
-                        <div class="gallery-item full-width">
-                            <div class="gallery-image" onclick="openLightbox(${lastIndex})">
-                                ${images[lastIndex].image ? `<img src="/uploads/${images[lastIndex].image}" alt="${images[lastIndex].title}"><div class="click-hint"><div class="magnify-icon">🔍</div><span>Click to view</span></div>` : '<span class="placeholder">No Image</span>'}
-                            </div>
-                            <div class="gallery-description">
-                                <h3>${images[lastIndex].title}</h3>
-                                <p>${images[lastIndex].description || ''}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
+            // Layout: 1 centered, 2-3 paired, 4-5 paired, 6-7 paired, 8-9-10 triple row
+            // Image 1: solo centered
+            if (images.length >= 1) {
+                html += `<div class="gallery-row">${makeItem(0, 'full-width')}</div>`;
+            }
+
+            // Images 2-3: paired
+            if (images.length >= 3) {
+                html += `<div class="gallery-row">${makeItem(1, 'half-width')}${makeItem(2, 'half-width')}</div>`;
+            } else if (images.length === 2) {
+                html += `<div class="gallery-row">${makeItem(1, 'full-width')}</div>`;
+            }
+
+            // Images 4-5: paired
+            if (images.length >= 5) {
+                html += `<div class="gallery-row">${makeItem(3, 'half-width')}${makeItem(4, 'half-width')}</div>`;
+            } else if (images.length === 4) {
+                html += `<div class="gallery-row">${makeItem(3, 'full-width')}</div>`;
+            }
+
+            // Images 6-7: paired
+            if (images.length >= 7) {
+                html += `<div class="gallery-row">${makeItem(5, 'half-width')}${makeItem(6, 'half-width')}</div>`;
+            } else if (images.length === 6) {
+                html += `<div class="gallery-row">${makeItem(5, 'full-width')}</div>`;
+            }
+
+            // Images 8-9-10: each on its own row, centered
+            if (images.length >= 8) {
+                html += `<div class="gallery-row">${makeItem(7, 'full-width')}</div>`;
+            }
+            if (images.length >= 9) {
+                html += `<div class="gallery-row">${makeItem(8, 'full-width')}</div>`;
+            }
+            if (images.length >= 10) {
+                html += `<div class="gallery-row">${makeItem(9, 'full-width')}</div>`;
+            }
+
+            // Any remaining images after 10: paired
+            let index = 10;
+            while (index < images.length) {
+                if (index + 1 < images.length) {
+                    html += `<div class="gallery-row">${makeItem(index, 'half-width')}${makeItem(index + 1, 'half-width')}</div>`;
+                    index += 2;
+                } else {
+                    html += `<div class="gallery-row">${makeItem(index, 'full-width')}</div>`;
+                    index++;
+                }
             }
 
             container.innerHTML = html;

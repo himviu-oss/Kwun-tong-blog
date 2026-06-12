@@ -137,6 +137,7 @@
                     <span id="imageSelectorText">Click to select media</span>
                     <img id="selectedImagePreview" class="selected-image" style="display:none">
                 </div>
+                <button type="button" id="removeImageBtn" class="btn btn-danger" style="display:none; margin-top:10px;" onclick="removeImage()">Remove Image</button>
                 <input type="hidden" id="selectedImage">
             </div>
             <div class="form-group">
@@ -235,6 +236,11 @@
                     document.getElementById('selectedImagePreview').src = `/uploads/${post.image}`;
                     document.getElementById('selectedImagePreview').style.display = 'block';
                     document.getElementById('imageSelectorText').style.display = 'none';
+                    document.getElementById('removeImageBtn').style.display = 'inline-block';
+                } else {
+                    document.getElementById('selectedImagePreview').style.display = 'none';
+                    document.getElementById('imageSelectorText').style.display = 'inline';
+                    document.getElementById('removeImageBtn').style.display = 'none';
                 }
             } else {
                 document.getElementById('postTitle').value = '';
@@ -243,11 +249,19 @@
                 document.getElementById('selectedImage').value = '';
                 document.getElementById('selectedImagePreview').style.display = 'none';
                 document.getElementById('imageSelectorText').style.display = 'inline';
+                document.getElementById('removeImageBtn').style.display = 'none';
             }
         }
 
         function closeModal() { document.getElementById('postModal').classList.remove('active'); }
         function editPost(id) { openModal(id); }
+
+        function removeImage() {
+            document.getElementById('selectedImage').value = '';
+            document.getElementById('selectedImagePreview').style.display = 'none';
+            document.getElementById('imageSelectorText').style.display = 'inline';
+            document.getElementById('removeImageBtn').style.display = 'none';
+        }
 
         function deletePost(id) {
             if (confirm('Delete this post?')) {
@@ -351,6 +365,7 @@
             document.getElementById('selectedImagePreview').src = `/uploads/${filename}`;
             document.getElementById('selectedImagePreview').style.display = 'block';
             document.getElementById('imageSelectorText').style.display = 'none';
+            document.getElementById('removeImageBtn').style.display = 'inline-block';
             closeMediaSelector();
         }
     </script>

@@ -161,7 +161,8 @@ app.get('/api/posts', (req, res) => {
     content: row[2],
     image: row[3],
     post_date: row[4],
-    created_at: row[5]
+    created_at: row[5],
+    col: row[6] || null
   })) : [];
   res.json(posts);
 });

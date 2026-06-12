@@ -7,17 +7,23 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         .posts-container {
-            max-width: 800px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 40px 20px;
-            overflow: hidden;
+            padding: 40px 15px;
+            display: flex;
+            gap: 20px;
+        }
+        .post-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         .post-card {
             background: #1e1e1e;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
@@ -83,9 +89,10 @@
         }
         .post-image {
             width: 100%;
-            height: 200px;
-            object-fit: cover;
+            max-height: 400px;
+            object-fit: contain;
             transition: transform 0.4s ease, filter 0.4s ease;
+            background: #111;
         }
         .post-video {
             width: 100%;
@@ -97,6 +104,8 @@
         .post-content h3 {
             margin-bottom: 10px;
             color: #fff;
+            font-size: 1.8rem;
+            font-weight: 600;
         }
         .post-date {
             color: #888;
@@ -108,6 +117,39 @@
             line-height: 1.8;
             word-wrap: break-word;
             overflow-wrap: break-word;
+        }
+        .post-body.collapsed {
+            max-height: 300px;
+            overflow: hidden;
+            position: relative;
+        }
+        .post-body.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(transparent, #1e1e1e);
+            pointer-events: none;
+        }
+        .post-card:nth-child(even) .post-body.collapsed::after {
+            background: linear-gradient(transparent, #252525);
+        }
+        .read-more-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 10px 0;
+            display: block;
+            text-align: right;
+            width: 100%;
+            margin-left: auto;
+        }
+        .read-more-btn:hover {
+            text-decoration: underline;
         }
         .post-body font[color] {
             color: inherit !important;
@@ -233,15 +275,19 @@
         @media (max-width: 768px) {
             .posts-container {
                 padding: 20px 10px;
+                flex-direction: column;
+            }
+            .post-column {
+                width: 100%;
             }
             .post-image {
-                height: 180px;
+                max-height: 180px;
             }
             .post-content {
                 padding: 15px;
             }
             .post-content h3 {
-                font-size: 18px;
+                font-size: 1.3rem;
             }
             .post-body .inline-image-wrapper {
                 max-width: 100%;
@@ -305,7 +351,7 @@
         </nav>
     </header>
 
-    <main>
+    <main style="max-width: 1400px; padding: 2rem 30px;">
         <section class="hero">
             <h2>Blog</h2>
         </section>
@@ -337,7 +383,19 @@
                     return;
                 }
 
-                container.innerHTML = posts.map(post => {
+                // Sort by date (newest first)
+                posts.sort((a, b) => {
+                    const dateA = a.post_date ? new Date(a.post_date) : new Date(a.created_at);
+                    const dateB = b.post_date ? new Date(b.post_date) : new Date(b.created_at);
+                    return dateB - dateA;
+                });
+
+                let leftCol = '';
+                let rightCol = '';
+                let leftCount = 0;
+                let rightCount = 0;
+                
+                posts.forEach((post, index) => {
                     let mediaHtml = '';
                     if (post.image) {
                         const isVideo = post.image.match(/\.(mp4|webm|mov|avi)$/i);
@@ -348,17 +406,35 @@
                         }
                     }
                     
-                    return `
+                    const card = `
                         <article class="post-card">
-                            ${mediaHtml}
                             <div class="post-content">
                                 <h3>${post.title}</h3>
                                 <p class="post-date">${post.post_date ? new Date(post.post_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</p>
-                                <div class="post-body">${post.content || ''}</div>
+                            </div>
+                            ${mediaHtml}
+                            <div class="post-content" style="padding-top: 0;">
+                                <div class="post-body collapsed" id="post-body-${index}">${post.content || ''}</div>
+                                <button class="read-more-btn" id="read-more-${index}" onclick="togglePost(${index})">Read more ▼</button>
                             </div>
                         </article>
                     `;
-                }).join('');
+                    
+                    if (post.col === 'left') {
+                        leftCol += card;
+                    } else if (post.col === 'right') {
+                        rightCol += card;
+                    } else if (index % 2 === 0) {
+                        leftCol += card;
+                    } else {
+                        rightCol += card;
+                    }
+                });
+
+                container.innerHTML = `
+                    <div class="post-column">${leftCol}</div>
+                    <div class="post-column">${rightCol}</div>
+                `;
 
                 // Add click event and animation to all images inside post body
                 document.querySelectorAll('.post-body img').forEach(img => {
@@ -390,6 +466,33 @@
             .catch(error => {
                 document.getElementById('postsContainer').innerHTML = '<p class="no-posts">Unable to load posts. Make sure the server is running.</p>';
             });
+
+        function togglePost(index) {
+            const body = document.getElementById('post-body-' + index);
+            const btn = document.getElementById('read-more-' + index);
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                btn.textContent = 'Show less ▲';
+            } else {
+                body.classList.add('collapsed');
+                btn.textContent = 'Read more ▼';
+                // Scroll back to the post title
+                const card = body.closest('.post-card');
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Hide "Read more" button for short posts
+        setTimeout(() => {
+            document.querySelectorAll('.post-body').forEach((body) => {
+                const index = body.id.replace('post-body-', '');
+                const btn = document.getElementById('read-more-' + index);
+                if (body.scrollHeight <= 300) {
+                    body.classList.remove('collapsed');
+                    if (btn) btn.style.display = 'none';
+                }
+            });
+        }, 800);
 
         // Lightbox functions
         function openLightbox(src) {
